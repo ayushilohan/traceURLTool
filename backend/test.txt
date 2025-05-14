@@ -1,0 +1,45 @@
+const got = require('got');
+const { parse } = require('url');
+
+async function traceRedirects(url) {
+  try {
+    // Step 1: Make a GET request to follow redirects
+    const response = await got(url, {
+      followRedirect: true,
+      throwHttpErrors: false
+    });
+
+    // Step 2: Collect the chain of URLs (redirects + final)
+    const redirectChain = response.redirectUrls || [];
+    const allSteps = [url, ...redirectChain, response.url];  // Include starting URL
+
+    // Step 3: Print header
+    console.log(`Step  Status  Scheme  Host                         Path`);
+    console.log(`---------------------------------------------------------------`);
+
+    // Step 4: Visit each URL in the chain to get status, scheme, host, full URL path
+    for (let i = 0; i < allSteps.length; i++) {
+      const targetUrl = allSteps[i];
+      const parsed = parse(targetUrl);
+
+      try {
+        const headResp = await got(targetUrl, {
+          method: 'HEAD',
+          followRedirect: false,
+          throwHttpErrors: false
+        });
+
+        // Print the complete URL (full path with query and fragment)
+        console.log(`${i + 1}     ${headResp.statusCode}     ${parsed.protocol.replace(':', '').padEnd(6)} ${parsed.host.padEnd(28)} ${targetUrl}`);
+      } catch (e) {
+        // Print the complete URL (full path with query and fragment)
+        console.log(`${i + 1}     ERR      ${parsed.protocol.replace(':', '').padEnd(6)} ${parsed.host.padEnd(28)} ${targetUrl}`);
+      }
+    }
+  } catch (err) {
+    console.error('Request failed:', err.message);
+  }
+}
+
+// Example URL to trace
+traceRedirects('http://tinyurl.com/abcd123');
