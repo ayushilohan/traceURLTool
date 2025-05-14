@@ -1,0 +1,84 @@
+import React, { useState } from 'react';
+import axios from 'axios';
+import './App.css';
+
+const App = () => {
+  const [url, setUrl] = useState('');
+  const [traceData, setTraceData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!url) return;
+
+    setLoading(true);
+    setError('');
+    setTraceData([]);
+
+    try {
+      const response = await axios.post('http://localhost:5000/trace', { url });
+      setTraceData(response.data);
+    } catch (err) {
+      setError('⚠️ Failed to trace URL. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="container">
+      <h1>🔗 URL Trace Route Tool</h1>
+
+      <form onSubmit={handleSubmit}>
+        <input
+          type="url"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="Enter a URL (e.g. http://bit.ly/xyz)"
+          required
+        />
+        <button type="submit" disabled={loading}>
+          {loading ? 'Tracing...' : 'Trace'}
+        </button>
+      </form>
+
+      {error && <div className="error">{error}</div>}
+
+      {traceData.length > 0 && (
+        <>
+          <table>
+            <thead>
+              <tr>
+                <th>Step</th>
+                <th>Status</th>
+                <th>Scheme</th>
+                <th>Host</th>
+                <th>Path</th>
+              </tr>
+            </thead>
+            <tbody>
+              {traceData.map((step) => (
+                <tr key={step.step}>
+                  <td>{step.step}</td>
+                  <td>{step.status}</td>
+                  <td>{step.scheme}</td>
+                  <td>{step.host}</td>
+                  <td className="path-cell">{step.path}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {/* ✅ Success message */}
+          {!loading && (
+            <p className="success-message">✅ Trace completed successfully.</p>
+          )}
+        </>
+      )}
+
+    </div>
+  );
+};
+
+export default App;
